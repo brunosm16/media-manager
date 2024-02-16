@@ -1,4 +1,12 @@
 {
+  "arrowParens": "always",
+  "bracketSpacing": true,
+  "embeddedLanguageFormatting": "auto",
+  "endOfLine": "lf",
+  "quoteProps": "consistent",
+  "semi": true,
   "singleQuote": true,
-  "trailingComma": "all"
+  "tabWidth": 2,
+  "trailingComma": "es5",
+  "useTabs": false
 }
