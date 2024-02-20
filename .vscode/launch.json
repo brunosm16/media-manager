@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "address": "localhost",
+      "localRoot": "${workspaceFolder}",
+      "name": "Debug Media Manager with Docker Container",
+      "port": 9229,
+      "protocol": "inspector",
+      "remoteRoot": "/usr/src/app",
+      "request": "attach",
+      "restart": true,
+      "skipFiles": ["<node_internals>/**"],
+      "sourceMaps": true,
+      "type": "node"
+    }
+  ]
+}
