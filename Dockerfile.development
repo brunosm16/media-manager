@@ -1,0 +1,22 @@
+FROM node:20.11-alpine3.18 as development
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+WORKDIR /usr/src/app
+
+COPY package.json package-lock.json ./
+
+RUN apk update && apk add --upgrade \
+    python3 \
+    py3-pip \
+    g++ \
+    gcc \
+    make \
+    cmake \
+    ffmpeg
+
+RUN npm install
+
+COPY . .
+
+RUN npm run build
