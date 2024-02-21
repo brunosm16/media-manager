@@ -13,13 +13,14 @@ services:
       context: .
       dockerfile: ./Dockerfile.development
       target: development
-    command: npm run start:dev
+    command: npm run start:${NPM_START_SCRIPT_SUFFIX:-dev}
     volumes:
       - .:/usr/src/app
       - uploaded_medias:/usr/src/app/upload
       - /usr/src/app/node_modules
     ports:
       - ${SERVER_PORT}:${SERVER_PORT}
+      - ${DEBUG_PORT:-9229}:${DEBUG_PORT:-9229}
   database:
     container_name: ${DATABASE_HOST}
     image: postgres:16.1
@@ -41,6 +42,22 @@ services:
     image: redis:7.2.4
     networks:
       - media_manager_network
+  nginx:
+    container_name: media_manager_nginx
+    image: nginx:stable
+    depends_on:
+      - server
+    env_file:
+      - .env
+    networks:
+      - media_manager_network
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - ${NGINX_HOST_PORT_1}:${NGINX_CONTAINER_PORT_1}
+      - ${NGINX_HOST_PORT_2}:${NGINX_CONTAINER_PORT_2}
+    logging:
+      driver: none
 
 networks:
   media_manager_network:

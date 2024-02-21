@@ -8,18 +8,19 @@
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "nest start",
-    "start:dev": "nest start --watch",
-    "start:debug": "nest start --debug --watch",
-    "start:prod": "node dist/main",
-    "start:debug:docker": "nest start --debug 0.0.0.0:9229 --watch",
+    "start": "npm run export-vars && nest start",
+    "start:dev": "npm run export-vars && nest start --watch",
+    "start:debug": "npm run export-vars && nest start --debug --watch",
+    "start:prod": "npm run export-vars && node dist/main",
+    "start:debug:docker": "npm run export-vars && nest start --debug 0.0.0.0:9229 --watch",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "prepare": "husky"
+    "prepare": "husky",
+    "export-vars": "export $(grep -v '^#' .env | xargs -0) && echo 'Environment variables are set'"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
