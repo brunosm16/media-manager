@@ -1,0 +1,19 @@
+### About
+
+This application uses PostgreSQL as Database, the main way to run the Media Manager is through Docker and to manipulate the tables created by the application it is necessary to access PostgreSQL directly from Docker, this documentation aims to teach access how to PostgreSQL via Docker.
+
+### Requirements
+
+- Docker
+- PostgreSQL
+- Docker Compose
+
+### Steps
+
+- Run application's docker compose
+- To enter PostgreSQL bash run the command below. PostgreSQL container from application needs to be running
+	``sudo docker exec -it ${DATABASE_HOST} bash``
+- Run the following command after entering PostgreSQL bash to access application's database
+	 ```psql -h ${DATABASE_HOST} -U ${DATABASE_USER} -d ${DATABASE_NAME}```
+- After running the above command it's necessary to enter the password used to pull PostgreSQL container inside docker compose
+- That's it now it's possible to run queries from application's Database that runs inside a docker container
