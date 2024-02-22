@@ -9,8 +9,12 @@ import {
 import { logErrorDetailed } from 'src/utils/logs';
 import { Repository } from 'typeorm';
 
-import type { CreateUserDto, DeleteUserResultDto, UpdateUserDto } from './dto';
-import type { EncryptUserCredentialsResultDto } from './dto/encrypt-user-data.result.dto';
+import type {
+  CreateUserDto,
+  DeleteUserResultDto,
+  EncryptUserCredentialsResultDto,
+  UpdateUserDto,
+} from './dto';
 
 import { UserEntity } from './entities/user.entity';
 
@@ -45,11 +49,7 @@ export class UserService {
     try {
       const { email } = createUserDto;
 
-      const userExists = await this.findUserByEmail(email);
-
-      if (userExists) {
-        throw new BadRequestException('User already exists');
-      }
+      await this.validateUserExistsByEmail(email);
 
       return await this.userRepository.save({
         email,
@@ -86,11 +86,7 @@ export class UserService {
 
   async remove(id: string): Promise<DeleteUserResultDto> {
     try {
-      const user = await this.userRepository.findOneBy({ id });
-
-      if (!user) {
-        throw new BadRequestException('User not found');
-      }
+      await this.validateUserExistsById(id);
 
       const result = await this.userRepository.delete(id);
 
@@ -110,13 +106,11 @@ export class UserService {
     }
   }
 
-  runUpdateValidations(
-    existingUser: UserEntity | null,
+  async runUpdateValidations(
+    id: string,
     updateUserDto: UpdateUserDto
-  ): void {
-    if (!existingUser) {
-      throw new BadRequestException('User not found');
-    }
+  ): Promise<void> {
+    await this.validateUserExistsById(id);
 
     if (objectIsEmpty(updateUserDto)) {
       throw new BadRequestException('No fields to update');
@@ -125,9 +119,9 @@ export class UserService {
 
   async update(id: string, updateUserDto: UpdateUserDto): Promise<UserEntity> {
     try {
-      const existingUser = await this.findOne(id);
+      await this.runUpdateValidations(id, updateUserDto);
 
-      this.runUpdateValidations(existingUser, updateUserDto);
+      const existingUser = await this.findOne(id);
 
       const user = await this.buildUserToUpdate(existingUser, updateUserDto);
       const result = await this.userRepository.save(user);
@@ -142,6 +136,22 @@ export class UserService {
     } catch (err) {
       logErrorDetailed(err, 'Error while updating a user');
       throw err;
+    }
+  }
+
+  async validateUserExistsByEmail(email: string): Promise<void> {
+    const userExists = await this.findUserByEmail(email);
+
+    if (userExists) {
+      throw new BadRequestException('User already exists');
+    }
+  }
+
+  async validateUserExistsById(id: string): Promise<void> {
+    const userExists = await this.findOne(id);
+
+    if (!userExists) {
+      throw new BadRequestException('User not found');
     }
   }
 }
