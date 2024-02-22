@@ -72,11 +72,11 @@ export class UserService {
     };
   }
 
-  findAll() {
+  async findAll(): Promise<UserEntity[]> {
     return this.userRepository.find();
   }
 
-  findOne(id: string) {
+  async findOne(id: string): Promise<UserEntity> {
     return this.userRepository.findOneBy({ id });
   }
 
