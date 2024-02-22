@@ -6,7 +6,7 @@ import {
 } from 'typeorm';
 
 @Entity({ name: 'users' })
-export class User {
+export class UserEntity {
   @CreateDateColumn()
   createdAt: string;
 
@@ -18,9 +18,6 @@ export class User {
 
   @PrimaryGeneratedColumn('uuid')
   id: string;
-
-  @Column({ select: false })
-  password: string;
 
   @Column({ select: false })
   salt: string;
