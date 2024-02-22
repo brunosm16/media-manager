@@ -9,7 +9,7 @@ import {
 import { logErrorDetailed } from 'src/utils/logs';
 import { Repository } from 'typeorm';
 
-import type { CreateUserDto, UpdateUserDto } from './dto';
+import type { CreateUserDto, DeleteUserResultDto, UpdateUserDto } from './dto';
 import type { EncryptUserCredentialsResultDto } from './dto/encrypt-user-data.result.dto';
 
 import { UserEntity } from './entities/user.entity';
@@ -84,8 +84,30 @@ export class UserService {
     return this.userRepository.findOneBy({ email });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async remove(id: string): Promise<DeleteUserResultDto> {
+    try {
+      const user = await this.userRepository.findOneBy({ id });
+
+      if (!user) {
+        throw new BadRequestException('User not found');
+      }
+
+      const result = await this.userRepository.delete(id);
+
+      if (!result?.affected) {
+        throw new BadRequestException('User was not removed');
+      }
+
+      Logger.log(`User with id ${id} was removed`);
+
+      return {
+        deleted: true,
+        id,
+      } as DeleteUserResultDto;
+    } catch (err) {
+      logErrorDetailed(err, 'Error while removing a user');
+      throw err;
+    }
   }
 
   runUpdateValidations(
