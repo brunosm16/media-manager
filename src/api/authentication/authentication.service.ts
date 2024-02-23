@@ -1,20 +1,20 @@
-import type { UserEntity } from 'src/user/entities/user.entity';
-
 import {
   BadRequestException,
   ForbiddenException,
   Injectable,
 } from '@nestjs/common';
 import { JwtHelperService } from 'src/modules/jwt-helper/jwt-helper.service';
-import { UserService } from 'src/user/user.service';
 import { logErrorDetailed } from 'src/utils/logs';
 
+import type { UserEntity } from '../user/entities/user.entity';
 import type {
   LoginAuthenticationDto,
   LoginAuthenticationResultDto,
   SignUpAuthenticationDto,
   SignUpAuthenticationResultDto,
 } from './dto';
+
+import { UserService } from '../user/user.service';
 
 @Injectable()
 export class AuthenticationService {

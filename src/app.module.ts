@@ -4,16 +4,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   applicationConfiguration,
   typeOrmDatabaseConfiguration,
-} from 'configuration';
+} from 'src/configuration';
 
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { AuthenticationModule } from './authentication/authentication.module';
+import { AuthenticationModule } from './api/authentication/authentication.module';
+import { UserModule } from './api/user/user.module';
 import { JwtHelperModule } from './modules/jwt-helper/jwt-helper.module';
-import { UserModule } from './user/user.module';
 
 @Module({
-  controllers: [AppController],
   imports: [
     ConfigModule.forRoot(applicationConfiguration),
     TypeOrmModule.forRootAsync({
@@ -25,6 +22,5 @@ import { UserModule } from './user/user.module';
     AuthenticationModule,
     JwtHelperModule,
   ],
-  providers: [AppService],
 })
 export class AppModule {}
