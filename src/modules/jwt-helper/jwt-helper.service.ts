@@ -1,10 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 
-interface JwtPayload {
-  email: string;
-  id: string;
-}
+import type { JwtPayload } from './jwt-helper.types';
 
 @Injectable()
 export class JwtHelperService {

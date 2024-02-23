@@ -1,4 +1,5 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { JwtAuthenticationGuard } from 'src/modules/jwt-helper/jwt.authentication.guard';
 
 import type {
   LoginAuthenticationResultDto,
@@ -24,5 +25,13 @@ export class AuthenticationController {
     @Body() userSignUpDto: SignUpAuthenticationDto
   ): Promise<SignUpAuthenticationResultDto> {
     return this.authenticationService.signUp(userSignUpDto);
+  }
+
+  @UseGuards(JwtAuthenticationGuard)
+  @Get('/test-jwt-authentication')
+  async testJwtAuth() {
+    return {
+      isAuthenticated: true,
+    };
   }
 }
