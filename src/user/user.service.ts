@@ -84,6 +84,17 @@ export class UserService {
     return this.userRepository.findOneBy({ email });
   }
 
+  async findUserByEmailWithSelectedFields(
+    email: string
+  ): Promise<UserEntity | null> {
+    return this.userRepository.findOne({
+      select: ['id', 'email', 'hash', 'salt'],
+      where: {
+        email,
+      },
+    });
+  }
+
   async remove(id: string): Promise<DeleteUserResultDto> {
     try {
       await this.validateUserExistsById(id);
@@ -137,6 +148,14 @@ export class UserService {
       logErrorDetailed(err, 'Error while updating a user');
       throw err;
     }
+  }
+
+  async validatePassword(
+    password: string,
+    existingUser: UserEntity
+  ): Promise<boolean> {
+    const hash = await bcrypt.hash(password, existingUser.salt);
+    return hash === existingUser.hash;
   }
 
   async validateUserExistsByEmail(email: string): Promise<void> {
