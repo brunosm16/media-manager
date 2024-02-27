@@ -3,6 +3,7 @@ import { BadRequestException, Inject, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Job } from 'bull';
+import * as Ffmpeg from 'fluent-ffmpeg';
 import { existsSync, mkdirSync } from 'fs';
 import { readFile } from 'fs/promises';
 import * as path from 'path';
@@ -15,9 +16,11 @@ import { Repository } from 'typeorm';
 import type { MediaPaths } from './media-manager-jobs.types';
 
 import {
+  EXTRACT_VIDEO_THUMBNAIL_JOB,
   MEDIA_MANAGER_PARENT_QUEUE,
   RESCALE_DIRECTORY,
   RESCALE_IMAGE_JOB,
+  VIDEO_THUMBNAIL_DIRECTORY,
 } from './media-manager-jobs.constants';
 
 @Processor(MEDIA_MANAGER_PARENT_QUEUE)
@@ -28,6 +31,11 @@ export class MediaManagerJobsProcessor {
     @Inject(ConfigService)
     private readonly configService: ConfigService
   ) {}
+
+  private extractFilenameFromPath(filePath: string): string {
+    const { ext, name } = path.parse(filePath);
+    return `${name}${ext}`;
+  }
 
   private extractMediaFromJobData(job: Job): MediaEntity {
     const persistedMedia = job?.data?.jobData as MediaEntity;
@@ -41,7 +49,10 @@ export class MediaManagerJobsProcessor {
     return persistedMedia;
   }
 
-  private async extractPathsFromMedia(media: MediaEntity): Promise<MediaPaths> {
+  private async extractPathsFromMedia(
+    media: MediaEntity,
+    destinationDirectoryName: string
+  ): Promise<MediaPaths> {
     const { dispositiveId, mediaFilePath, userId } = media;
 
     const mediaUploadPath = this.configService.get('MEDIA_UPLOAD_PATH');
@@ -49,10 +60,10 @@ export class MediaManagerJobsProcessor {
       mediaUploadPath,
       userId,
       dispositiveId,
-      RESCALE_DIRECTORY
+      destinationDirectoryName
     );
 
-    const filename = this.getFilenameFromPath(mediaFilePath);
+    const filename = this.extractFilenameFromPath(mediaFilePath);
     const destinationPath = `${destinationDirectory}/${filename}`;
 
     if (!existsSync(destinationDirectory)) {
@@ -65,9 +76,22 @@ export class MediaManagerJobsProcessor {
     } as MediaPaths;
   }
 
-  private getFilenameFromPath(filePath: string): string {
-    const { ext, name } = path.parse(filePath);
-    return `${name}${ext}`;
+  private async persistVideoThumbnail(
+    destinationPath: string,
+    id: string
+  ): Promise<void> {
+    const result = await this.mediaRepository.update(
+      { id },
+      { mediaVideoThumbnailPath: destinationPath }
+    );
+
+    if (!result?.affected) {
+      throw new BadRequestException(
+        'Video thumbnail was not persisted correctly'
+      );
+    }
+
+    Logger.log('Video thumbnail persisted successfully');
   }
 
   private async rescaleImage(
@@ -83,13 +107,43 @@ export class MediaManagerJobsProcessor {
     return rescaledImage;
   }
 
-  @Process(RESCALE_IMAGE_JOB)
-  async rescaleImageJob(job: Job): Promise<void> {
+  @Process(EXTRACT_VIDEO_THUMBNAIL_JOB)
+  public async extractVideoThumbnail(job: Job): Promise<void> {
     try {
       const media = this.extractMediaFromJobData(job);
 
       const { destinationPath, originalPath } =
-        await this.extractPathsFromMedia(media);
+        await this.extractPathsFromMedia(media, VIDEO_THUMBNAIL_DIRECTORY);
+
+      Ffmpeg(originalPath)
+        .thumbnail({
+          filename: `${path.parse(originalPath).name}.png`,
+          folder: destinationPath,
+          timestamps: ['1'],
+        })
+        .on('error', (err) => {
+          logErrorDetailed(
+            err,
+            'Error while extracting video thumbnail with Ffmpeg'
+          );
+          throw err;
+        })
+        .on('end', () =>
+          this.persistVideoThumbnail(destinationPath, media?.id)
+        );
+    } catch (err) {
+      logErrorDetailed(err, 'Error while extracting video thumbnail');
+      throw err;
+    }
+  }
+
+  @Process(RESCALE_IMAGE_JOB)
+  public async rescaleImageJob(job: Job): Promise<void> {
+    try {
+      const media = this.extractMediaFromJobData(job);
+
+      const { destinationPath, originalPath } =
+        await this.extractPathsFromMedia(media, RESCALE_DIRECTORY);
 
       const rescaledImage = await this.rescaleImage(
         originalPath,

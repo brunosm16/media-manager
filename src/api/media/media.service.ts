@@ -34,6 +34,10 @@ export class MediaService {
       await this.mediaManagerJobsService.registerRescaleImageJob(mediaEntity);
     }
 
+    if (mediaEntity.mediaType === MediaTypeEnum.VIDEO) {
+      await this.mediaManagerJobsService.extractVideoThumbnail(mediaEntity);
+    }
+
     return result;
   }
 

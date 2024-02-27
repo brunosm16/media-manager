@@ -8,6 +8,7 @@ import { randomUUID } from 'crypto';
 import type { JobRegistrationResult } from './media-manager-jobs.types';
 
 import {
+  EXTRACT_VIDEO_THUMBNAIL_JOB,
   MEDIA_MANAGER_PARENT_QUEUE,
   RESCALE_IMAGE_JOB,
 } from './media-manager-jobs.constants';
@@ -31,6 +32,12 @@ export class MediaManagerJobsService {
     return {
       jobId: job.id,
     };
+  }
+
+  public async extractVideoThumbnail(
+    media: MediaEntity
+  ): Promise<JobRegistrationResult> {
+    return this.registerJob(EXTRACT_VIDEO_THUMBNAIL_JOB, media);
   }
 
   public async registerRescaleImageJob(
