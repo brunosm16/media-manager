@@ -2,13 +2,15 @@ import {
   Column,
   CreateDateColumn,
   DeleteDateColumn,
+  Entity,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 
 import { MediaTypeEnum } from '../enums/media.enums';
 
-export class Media {
+@Entity({ name: 'medias' })
+export class MediaEntity {
   @CreateDateColumn()
   createdAt: string;
 
@@ -21,7 +23,7 @@ export class Media {
   @Column('uuid')
   dispositiveId: string;
 
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('uuid')
   id: string;
 
   @Column({
@@ -44,7 +46,7 @@ export class Media {
   mediaType: MediaTypeEnum;
 
   @Column({ nullable: true })
-  mediaVideoThumbnail: string;
+  mediaVideoThumbnailPath: string;
 
   @Column({ nullable: true })
   mimeType: string;
