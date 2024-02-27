@@ -33,7 +33,7 @@ export class MediaManagerJobsService {
     };
   }
 
-  private async registerRescaleImageJob(
+  public async registerRescaleImageJob(
     media: MediaEntity
   ): Promise<JobRegistrationResult> {
     return this.registerJob(RESCALE_IMAGE_JOB, media);

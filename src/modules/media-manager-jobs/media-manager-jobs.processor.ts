@@ -4,7 +4,9 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Job } from 'bull';
 import { existsSync, mkdirSync } from 'fs';
-import sharp from 'sharp';
+import { readFile } from 'fs/promises';
+import * as path from 'path';
+import * as sharp from 'sharp';
 import { MediaEntity } from 'src/api/media/entities/media.entity';
 import { createMediasDirectory } from 'src/api/media/multer/media.multer.utils';
 import { logErrorDetailed } from 'src/utils/logs';
@@ -43,21 +45,42 @@ export class MediaManagerJobsProcessor {
     const { dispositiveId, mediaFilePath, userId } = media;
 
     const mediaUploadPath = this.configService.get('MEDIA_UPLOAD_PATH');
-    const destinationPath = createMediasDirectory(
+    const destinationDirectory = createMediasDirectory(
       mediaUploadPath,
       userId,
       dispositiveId,
       RESCALE_DIRECTORY
     );
 
-    if (!existsSync(destinationPath)) {
-      mkdirSync(destinationPath, { recursive: true });
+    const filename = this.getFilenameFromPath(mediaFilePath);
+    const destinationPath = `${destinationDirectory}/${filename}`;
+
+    if (!existsSync(destinationDirectory)) {
+      mkdirSync(destinationDirectory, { recursive: true });
     }
 
     return {
       destinationPath,
       originalPath: mediaFilePath,
     } as MediaPaths;
+  }
+
+  private getFilenameFromPath(filePath: string): string {
+    const { ext, name } = path.parse(filePath);
+    return `${name}${ext}`;
+  }
+
+  private async rescaleImage(
+    originalPath: string,
+    destinationPath: string
+  ): Promise<sharp.OutputInfo> {
+    const file = await readFile(originalPath);
+
+    const rescaledImage = await sharp(file)
+      .resize(200, 200, { fit: 'cover' })
+      .toFile(destinationPath);
+
+    return rescaledImage;
   }
 
   @Process(RESCALE_IMAGE_JOB)
@@ -68,9 +91,10 @@ export class MediaManagerJobsProcessor {
       const { destinationPath, originalPath } =
         await this.extractPathsFromMedia(media);
 
-      const rescaledImage = await sharp(originalPath)
-        .resize(200, 200, { fit: 'cover' })
-        .toFile(destinationPath);
+      const rescaledImage = await this.rescaleImage(
+        originalPath,
+        destinationPath
+      );
 
       await this.mediaRepository.update(
         { id: media.id },

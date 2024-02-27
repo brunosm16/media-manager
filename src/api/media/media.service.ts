@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { MediaManagerJobsService } from 'src/modules/media-manager-jobs/media-manager-jobs.service';
 import { logErrorDetailed } from 'src/utils/logs';
 import { Repository } from 'typeorm';
 
@@ -12,7 +13,8 @@ import { MediaTypeEnum } from './enums/media.enums';
 export class MediaService {
   constructor(
     @InjectRepository(MediaEntity)
-    private mediaRepository: Repository<MediaEntity>
+    private mediaRepository: Repository<MediaEntity>,
+    private mediaManagerJobsService: MediaManagerJobsService
   ) {}
 
   private async createMedia(
@@ -26,7 +28,13 @@ export class MediaService {
       file
     );
 
-    return this.mediaRepository.save(mediaEntity);
+    const result = await this.mediaRepository.save(mediaEntity);
+
+    if (mediaEntity.mediaType === MediaTypeEnum.IMAGE) {
+      await this.mediaManagerJobsService.registerRescaleImageJob(mediaEntity);
+    }
+
+    return result;
   }
 
   private extractMediaTypeFromMimeType(mimeType: string): MediaTypeEnum {
