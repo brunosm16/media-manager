@@ -16,7 +16,7 @@ services:
     command: npm run start:${NPM_START_SCRIPT_SUFFIX:-dev}
     volumes:
       - .:/usr/src/app
-      - uploaded_medias:/usr/src/app/upload
+      - ${MEDIA_UPLOAD_PATH}:/usr/src/app/upload
       - /usr/src/app/node_modules
     ports:
       - ${SERVER_PORT}:${SERVER_PORT}

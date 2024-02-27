@@ -25,6 +25,8 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     const { email } = payload;
     const user = await this.userService.findUserByEmail(email);
 
+    Logger.log(`User with email ${email} authenticated`);
+
     if (!user) {
       Logger.error(`Invalid access token for user with email ${email} `);
 

@@ -9,10 +9,11 @@ import { extname } from 'path';
 
 import type { MediaMulterRequest } from './media.multer.interfaces';
 
+import {
+  ACCEPTED_FILES_REGEX,
+  MEDIA_FOLDER_NAME,
+} from './media.multer.constants';
 import { createMediasDirectory } from './media.multer.utils';
-
-const ACCEPTED_FILES_REGEX = '//(jpg|jpeg|png|gif|mp4)$/';
-const MEDIA_FOLDER_NAME = 'media';
 
 const makeFileNotSupportedError = (fileName: null | string): HttpException => {
   const extension = extname(fileName);
@@ -50,7 +51,7 @@ const getFilename = (file: Express.Multer.File, cb: any) => {
   return originalname;
 };
 
-export const multerOption: MulterOptions = {
+export const mediaMulterOptions: MulterOptions = {
   fileFilter: (req: Request, file: Express.Multer.File, cb: any) => {
     const fileIsSupported = file.mimetype.match(ACCEPTED_FILES_REGEX);
 
@@ -67,7 +68,7 @@ export const multerOption: MulterOptions = {
       file: Express.Multer.File,
       cb: any
     ) => {
-      const uploadPath = process.env.UPLOAD_PATH;
+      const uploadPath = process.env.MEDIA_UPLOAD_PATH;
 
       if (!uploadPath) {
         cb(makeRequiredFieldError('Upload Path'), false);

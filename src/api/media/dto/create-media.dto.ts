@@ -1,5 +1,5 @@
 import {
-  IsBoolean,
+  IsBooleanString,
   IsNotEmpty,
   IsOptional,
   IsString,
@@ -16,10 +16,6 @@ export class CreateMediaDto {
   dispositiveId: string;
 
   @IsOptional()
-  @IsBoolean()
+  @IsBooleanString()
   isFavorite: boolean;
-
-  @IsNotEmpty()
-  @IsUUID()
-  userId: string;
 }

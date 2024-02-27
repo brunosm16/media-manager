@@ -12,6 +12,7 @@ export const applicationConfiguration: ConfigModuleOptions = {
     DATABASE_PORT: Joi.number().required(),
     DATABASE_USER: Joi.string().required(),
     DEBUG_PORT: Joi.number().default(9229),
+    MEDIA_UPLOAD_PATH: Joi.string().required(),
     NGINX_CONTAINER_PORT_1: Joi.number().default(80),
     NGINX_CONTAINER_PORT_2: Joi.number().default(443),
     NGINX_HOST_PORT_1: Joi.number().default(3333),
