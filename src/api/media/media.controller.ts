@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   Post,
   Query,
   Response,
@@ -51,8 +52,9 @@ export class MediaController {
   public async displayFile(
     @Query(ValidationPipe) query: QueryDisplayFileMediaDto,
     @Response({ passthrough: true }) res: ExpressResponse,
-    @GetAuthenticatedUser() user: UserEntity
+    @GetAuthenticatedUser() user: UserEntity,
+    @Headers('range') range: string
   ) {
-    return this.mediaService.displayFile(query, res, user?.id);
+    return this.mediaService.displayFile(query, res, user?.id, range);
   }
 }

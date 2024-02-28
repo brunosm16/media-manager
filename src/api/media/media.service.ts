@@ -2,6 +2,7 @@ import type { Response as ExpressResponse } from 'express';
 
 import {
   BadRequestException,
+  HttpStatus,
   Injectable,
   Logger,
   NotFoundException,
@@ -51,6 +52,35 @@ export class MediaService {
     return result;
   }
 
+  private async createRangeStreamableFile(
+    range: string,
+    filePath: string,
+    res: ExpressResponse
+  ): Promise<StreamableFile> {
+    const { end, start } = this.extractRangeLimits(range);
+
+    const isInvalidRange = !start || !end || start >= end;
+
+    if (isInvalidRange) {
+      res.status(HttpStatus.REQUESTED_RANGE_NOT_SATISFIABLE).set({
+        'Content-Range': `bytes ${start}-${end}/${end}`,
+      });
+
+      throw new BadRequestException('Invalid range provided');
+    }
+
+    const headers = {
+      'Accept-Ranges': 'bytes',
+      'Content-Length': `${end - start}`,
+      'Content-Range': `bytes ${start}-${end}/${end}`,
+      'Content-Type': 'video/mp4',
+    };
+
+    res.status(HttpStatus.PARTIAL_CONTENT).set(headers);
+
+    return this.createStreamableFile(filePath, { end, start });
+  }
+
   private async createStreamableFile(
     filePath: string,
     opts?: { end: number; start: number }
@@ -73,6 +103,18 @@ export class MediaService {
     }
 
     return MediaTypeEnum.OTHER;
+  }
+
+  private extractRangeLimits(range: string): { end: number; start: number } {
+    const [startRange, endRange] = range.replace(/bytes=/, '').split('-');
+
+    const start = parseInt(startRange, 10);
+    const end = parseInt(endRange, 10);
+
+    return {
+      end,
+      start,
+    };
   }
 
   private async findMediaByIdAndDispositiveId(
@@ -149,11 +191,22 @@ export class MediaService {
   public async displayFile(
     query: QueryDisplayFileMediaDto,
     res: ExpressResponse,
-    userId: string
+    userId: string,
+    headersRange: string
   ): Promise<StreamableFile> {
     try {
       const media = await this.findMediaByIdAndDispositiveId(query, userId);
-      const { mediaFilePath, mimeType } = media;
+      const { mediaFilePath, mediaType, mimeType } = media;
+
+      const isRangeRequest = headersRange && mediaType === MediaTypeEnum.VIDEO;
+
+      if (isRangeRequest) {
+        return await this.createRangeStreamableFile(
+          headersRange,
+          mediaFilePath,
+          res
+        );
+      }
 
       res.set({
         'Content-Type': mimeType,
