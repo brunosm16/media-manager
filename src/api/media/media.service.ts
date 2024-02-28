@@ -1,10 +1,20 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import type { Response as ExpressResponse } from 'express';
+
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  StreamableFile,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { createReadStream, existsSync } from 'fs';
 import { MediaManagerJobsService } from 'src/modules/media-manager-jobs/media-manager-jobs.service';
 import { logErrorDetailed } from 'src/utils/logs';
 import { Repository } from 'typeorm';
 
 import type { CreateMediaDto } from './dto/create-media.dto';
+import type { QueryDisplayFileMediaDto } from './dto/query-display-file-media.dto';
 
 import { MediaEntity } from './entities/media.entity';
 import { MediaTypeEnum } from './enums/media.enums';
@@ -13,8 +23,8 @@ import { MediaTypeEnum } from './enums/media.enums';
 export class MediaService {
   constructor(
     @InjectRepository(MediaEntity)
-    private mediaRepository: Repository<MediaEntity>,
-    private mediaManagerJobsService: MediaManagerJobsService
+    private readonly mediaRepository: Repository<MediaEntity>,
+    private readonly mediaManagerJobsService: MediaManagerJobsService
   ) {}
 
   private async createMedia(
@@ -41,6 +51,18 @@ export class MediaService {
     return result;
   }
 
+  private async createStreamableFile(
+    filePath: string,
+    opts?: { end: number; start: number }
+  ) {
+    if (!filePath || !existsSync(filePath)) {
+      throw new BadRequestException('Media file path invalid');
+    }
+
+    const stream = createReadStream(filePath, opts);
+    return new StreamableFile(stream);
+  }
+
   private extractMediaTypeFromMimeType(mimeType: string): MediaTypeEnum {
     if (mimeType.startsWith('image')) {
       return MediaTypeEnum.IMAGE;
@@ -51,6 +73,30 @@ export class MediaService {
     }
 
     return MediaTypeEnum.OTHER;
+  }
+
+  private async findMediaByIdAndDispositiveId(
+    query: QueryDisplayFileMediaDto,
+    userId: string
+  ): Promise<MediaEntity> {
+    const { dispositiveId, id } = query;
+
+    const queryString = `
+      SELECT * from medias m
+      WHERE m."id" = $1
+      AND m."dispositiveId" = $2
+      AND m."userId" = $3
+    `;
+
+    const fields = [id, dispositiveId, userId];
+
+    const [media] = await this.mediaRepository.query(queryString, fields);
+
+    if (!media) {
+      throw new NotFoundException('Media not found');
+    }
+
+    return media;
   }
 
   private async makeMediaEntityToCreate(
@@ -73,7 +119,7 @@ export class MediaService {
     return media;
   }
 
-  async createBatch(
+  public async createBatch(
     createMediaDto: CreateMediaDto,
     userId: string,
     files: Express.Multer.File[]
@@ -96,6 +142,26 @@ export class MediaService {
       return result;
     } catch (err) {
       logErrorDetailed(err, 'Error while trying to insert media in batch mode');
+      throw err;
+    }
+  }
+
+  public async displayFile(
+    query: QueryDisplayFileMediaDto,
+    res: ExpressResponse,
+    userId: string
+  ): Promise<StreamableFile> {
+    try {
+      const media = await this.findMediaByIdAndDispositiveId(query, userId);
+      const { mediaFilePath, mimeType } = media;
+
+      res.set({
+        'Content-Type': mimeType,
+      });
+
+      return await this.createStreamableFile(mediaFilePath);
+    } catch (err) {
+      logErrorDetailed(err, 'Error while trying to display file');
       throw err;
     }
   }
