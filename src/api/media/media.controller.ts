@@ -18,6 +18,7 @@ import { GetAuthenticatedUser } from 'src/decorators/get-authenticated-user.deco
 import { JwtAuthenticationGuard } from 'src/modules/jwt-helper/jwt.authentication.guard';
 
 import { UserEntity } from '../user/entities/user.entity';
+import { QueryGetMediasByDateDto } from './dto';
 import { CreateMediaDto } from './dto/create-media.dto';
 import { QueryDisplayFileMediaDto } from './dto/query-display-file-media.dto';
 import { MediaService } from './media.service';
@@ -56,5 +57,13 @@ export class MediaController {
     @Headers('range') range: string
   ) {
     return this.mediaService.displayFile(query, res, user?.id, range);
+  }
+
+  @Get('/get-medias-by-date')
+  public async getMediasByDate(
+    @Query() query: QueryGetMediasByDateDto,
+    @GetAuthenticatedUser() user: UserEntity
+  ): Promise<any> {
+    return this.mediaService.getMediasByDate(query, user?.id);
   }
 }

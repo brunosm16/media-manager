@@ -11,11 +11,17 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { createReadStream, existsSync } from 'fs';
 import { MediaManagerJobsService } from 'src/modules/media-manager-jobs/media-manager-jobs.service';
+import { groupArrayByKey } from 'src/utils/arrays';
 import { logErrorDetailed } from 'src/utils/logs';
 import { Repository } from 'typeorm';
 
+import type { QueryGetMediasByDateDto } from './dto';
 import type { CreateMediaDto } from './dto/create-media.dto';
 import type { QueryDisplayFileMediaDto } from './dto/query-display-file-media.dto';
+import type {
+  ResultDataGetMediasByDate,
+  ResultGetMediasByDateDto,
+} from './dto/result-get-medias-by-date.dto';
 
 import { MediaEntity } from './entities/media.entity';
 import { MediaTypeEnum } from './enums/media.enums';
@@ -141,6 +147,40 @@ export class MediaService {
     return media;
   }
 
+  private groupMediasByDate(
+    medias: MediaEntity[]
+  ): ResultDataGetMediasByDate[] {
+    const parseISODate = (date: string) =>
+      new Date(date).toISOString().slice(0, 10);
+
+    const groupedByCreatedAt = groupArrayByKey(
+      medias,
+      'createdAt',
+      parseISODate
+    );
+
+    const resultDataGetMediasByDate: ResultDataGetMediasByDate[] = Object.keys(
+      groupedByCreatedAt
+    ).map((key) => ({
+      date: key,
+      medias: groupedByCreatedAt[key],
+    }));
+
+    return resultDataGetMediasByDate;
+  }
+
+  private makeGetMediasByDateResponse(
+    length: number,
+    limitDate: string,
+    result: ResultDataGetMediasByDate[] = []
+  ): ResultGetMediasByDateDto {
+    return {
+      length,
+      limitDate,
+      result,
+    };
+  }
+
   private async makeMediaEntityToCreate(
     createMediaDto: CreateMediaDto,
     userId: string,
@@ -217,5 +257,33 @@ export class MediaService {
       logErrorDetailed(err, 'Error while trying to display file');
       throw err;
     }
+  }
+
+  public async getMediasByDate(
+    query: QueryGetMediasByDateDto,
+    userId: string
+  ): Promise<any> {
+    const { dispositiveId, limitDate, sort } = query;
+
+    const queryString = `
+      SELECT * from medias m
+      WHERE m."dispositiveId" = $1 AND
+      m."createdAt" <= $2 AND
+      m."userId" = $3
+      ORDER BY m."createdAt" ${sort}
+    `;
+
+    const fields = [dispositiveId, limitDate, userId];
+
+    const medias = await this.mediaRepository.query(queryString, fields);
+    const length = medias?.length;
+
+    if (!length) {
+      return this.makeGetMediasByDateResponse(medias?.length, limitDate);
+    }
+
+    const mediasByDate = this.groupMediasByDate(medias);
+
+    return this.makeGetMediasByDateResponse(length, limitDate, mediasByDate);
   }
 }
