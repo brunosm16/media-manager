@@ -17,8 +17,14 @@ import { Response as ExpressResponse } from 'express';
 import { GetAuthenticatedUser } from 'src/decorators/get-authenticated-user.decorator';
 import { JwtAuthenticationGuard } from 'src/modules/jwt-helper/jwt.authentication.guard';
 
+import type { ResultGetMediasByDateDto } from './dto';
+import type { MediaEntity } from './entities/media.entity';
+
 import { UserEntity } from '../user/entities/user.entity';
-import { QueryGetMediasByDateDto } from './dto';
+import {
+  QueryGetMediasByDateDto,
+  QueryGetMediasByDispositiveIdDto,
+} from './dto';
 import { CreateMediaDto } from './dto/create-media.dto';
 import { QueryDisplayFileMediaDto } from './dto/query-display-file-media.dto';
 import { MediaService } from './media.service';
@@ -63,7 +69,15 @@ export class MediaController {
   public async getMediasByDate(
     @Query() query: QueryGetMediasByDateDto,
     @GetAuthenticatedUser() user: UserEntity
-  ): Promise<any> {
+  ): Promise<ResultGetMediasByDateDto> {
     return this.mediaService.getMediasByDate(query, user?.id);
+  }
+
+  @Get('/get-medias-by-dispositive-id')
+  public async getMediasByDispositiveId(
+    @Query() query: QueryGetMediasByDispositiveIdDto,
+    @GetAuthenticatedUser() user: UserEntity
+  ): Promise<MediaEntity[] | string[]> {
+    return this.mediaService.getMediasByDispositiveId(query, user?.id);
   }
 }

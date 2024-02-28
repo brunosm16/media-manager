@@ -15,7 +15,10 @@ import { groupArrayByKey } from 'src/utils/arrays';
 import { logErrorDetailed } from 'src/utils/logs';
 import { Repository } from 'typeorm';
 
-import type { QueryGetMediasByDateDto } from './dto';
+import type {
+  QueryGetMediasByDateDto,
+  QueryGetMediasByDispositiveIdDto,
+} from './dto';
 import type { CreateMediaDto } from './dto/create-media.dto';
 import type { QueryDisplayFileMediaDto } from './dto/query-display-file-media.dto';
 import type {
@@ -262,7 +265,7 @@ export class MediaService {
   public async getMediasByDate(
     query: QueryGetMediasByDateDto,
     userId: string
-  ): Promise<any> {
+  ): Promise<ResultGetMediasByDateDto> {
     const { dispositiveId, limitDate, sort } = query;
 
     const queryString = `
@@ -285,5 +288,21 @@ export class MediaService {
     const mediasByDate = this.groupMediasByDate(medias);
 
     return this.makeGetMediasByDateResponse(length, limitDate, mediasByDate);
+  }
+
+  public async getMediasByDispositiveId(
+    query: QueryGetMediasByDispositiveIdDto,
+    userId: string
+  ): Promise<MediaEntity[] | string[]> {
+    const medias = await this.mediaRepository.findBy({
+      dispositiveId: query.dispositiveId,
+      userId,
+    });
+
+    if (!medias?.length) {
+      return [];
+    }
+
+    return medias;
   }
 }
