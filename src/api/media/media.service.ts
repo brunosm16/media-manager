@@ -321,45 +321,58 @@ export class MediaService {
     query: QueryGetMediasByDateDto,
     userId: string
   ): Promise<ResultGetMediasByDateDto> {
-    const { dispositiveId, limitDate, sort } = query;
+    try {
+      const { dispositiveId, limitDate, sort } = query;
 
-    const queryString = `
-      SELECT * from medias m
-      WHERE m."dispositiveId" = $1 AND
-      m."createdAt" <= $2 AND
-      m."userId" = $3
-      ORDER BY m."createdAt" ${sort}
-    `;
+      const queryString = `
+        SELECT * from medias m
+        WHERE m."dispositiveId" = $1 AND
+        m."createdAt" <= $2 AND
+        m."userId" = $3
+        ORDER BY m."createdAt" ${sort}
+      `;
 
-    const fields = [dispositiveId, limitDate, userId];
+      const fields = [dispositiveId, limitDate, userId];
 
-    const medias = await this.mediaRepository.query(queryString, fields);
-    const length = medias?.length;
+      const medias = await this.mediaRepository.query(queryString, fields);
+      const length = medias?.length;
 
-    if (!length) {
-      return this.makeGetMediasByDateResponse(medias?.length, limitDate);
+      if (!length) {
+        return this.makeGetMediasByDateResponse(medias?.length, limitDate);
+      }
+
+      const mediasByDate = this.groupMediasByDate(medias);
+
+      return this.makeGetMediasByDateResponse(length, limitDate, mediasByDate);
+    } catch (err) {
+      logErrorDetailed(err, 'Error while trying to get medias by date');
+      throw err;
     }
-
-    const mediasByDate = this.groupMediasByDate(medias);
-
-    return this.makeGetMediasByDateResponse(length, limitDate, mediasByDate);
   }
 
   public async getMediasByDispositiveId(
     query: QueryGetMediasByDispositiveIdDto,
     userId: string
   ): Promise<ResultGetMediasGeneralDto> {
-    const { dispositiveId } = query;
+    try {
+      const { dispositiveId } = query;
 
-    const medias = await this.mediaRepository.findBy({
-      dispositiveId,
-      userId,
-    });
+      const medias = await this.mediaRepository.findBy({
+        dispositiveId,
+        userId,
+      });
 
-    return this.makeResultGetMediasGeneral(
-      medias?.length,
-      { dispositive: dispositiveId },
-      medias
-    );
+      return this.makeResultGetMediasGeneral(
+        medias?.length,
+        { dispositive: dispositiveId },
+        medias
+      );
+    } catch (err) {
+      logErrorDetailed(
+        err,
+        'Error while trying to get medias by dispositive id'
+      );
+      throw err;
+    }
   }
 }
