@@ -1,3 +1,5 @@
+import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
+
 import { BullModule } from '@nestjs/bull';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -10,6 +12,7 @@ import {
 import { AuthenticationModule } from './api/authentication/authentication.module';
 import { MediaModule } from './api/media/media.module';
 import { UserModule } from './api/user/user.module';
+import { MediaManagerLoggerMiddleware } from './middlewares/media-manager-logger-middleware';
 import { JwtHelperModule } from './modules/jwt-helper/jwt-helper.module';
 import { mediaManagerBullRootFactory } from './modules/media-manager-jobs/media-manager-jobs.configuration';
 
@@ -32,4 +35,8 @@ import { mediaManagerBullRootFactory } from './modules/media-manager-jobs/media-
     JwtHelperModule,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(MediaManagerLoggerMiddleware).forRoutes('*');
+  }
+}
