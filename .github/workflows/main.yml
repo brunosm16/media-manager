@@ -3,7 +3,8 @@ name: main
 on:
   workflow_dispatch: {}
   push:
-    branches: [issue-4]
+    branches:
+      - main
 
 jobs:
   main_workflow:
