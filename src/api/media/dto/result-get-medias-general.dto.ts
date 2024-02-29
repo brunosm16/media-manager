@@ -28,7 +28,7 @@ export type ResultDataGetMediasGeneral = {
 };
 
 export class ResultGetMediasGeneralDto {
-  [key: string]: any;
+  [queryField: string]: any;
 
   length: number;
 
