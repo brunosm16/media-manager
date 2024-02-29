@@ -16,6 +16,7 @@ import { logErrorDetailed } from 'src/utils/logs';
 import { Repository } from 'typeorm';
 
 import type {
+  QueryGetLatestMediasDto,
   QueryGetMediasByDateDto,
   QueryGetMediasByDispositiveIdDto,
   ResultDataGetMediasGeneral,
@@ -284,6 +285,34 @@ export class MediaService {
       return await this.createStreamableFile(mediaFilePath);
     } catch (err) {
       logErrorDetailed(err, 'Error while trying to display file');
+      throw err;
+    }
+  }
+
+  public async getLatestMedias(
+    query: QueryGetLatestMediasDto,
+    userId: string
+  ): Promise<ResultGetMediasGeneralDto> {
+    try {
+      const queryString = `
+      SELECT * from medias m
+      WHERE m."userId" = $1 AND
+      m."createdAt" >= $2
+      ORDER BY m."createdAt" ASC
+    `;
+
+      const { limitDate } = query;
+      const fields = [userId, limitDate];
+
+      const medias = await this.mediaRepository.query(queryString, fields);
+
+      return this.makeResultGetMediasGeneral(
+        medias?.length,
+        { date: limitDate },
+        medias
+      );
+    } catch (err) {
+      logErrorDetailed(err, 'Error while trying to get latest medias');
       throw err;
     }
   }

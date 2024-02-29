@@ -24,6 +24,7 @@ import type {
 
 import { UserEntity } from '../user/entities/user.entity';
 import {
+  QueryGetLatestMediasDto,
   QueryGetMediasByDateDto,
   QueryGetMediasByDispositiveIdDto,
 } from './dto';
@@ -67,9 +68,17 @@ export class MediaController {
     return this.mediaService.displayFile(query, res, user?.id, range);
   }
 
+  @Get('/get-latest-medias')
+  public async getLatestMedias(
+    @Query(ValidationPipe) query: QueryGetLatestMediasDto,
+    @GetAuthenticatedUser() user: UserEntity
+  ): Promise<ResultGetMediasGeneralDto> {
+    return this.mediaService.getLatestMedias(query, user?.id);
+  }
+
   @Get('/get-medias-by-date')
   public async getMediasByDate(
-    @Query() query: QueryGetMediasByDateDto,
+    @Query(ValidationPipe) query: QueryGetMediasByDateDto,
     @GetAuthenticatedUser() user: UserEntity
   ): Promise<ResultGetMediasByDateDto> {
     return this.mediaService.getMediasByDate(query, user?.id);
@@ -77,7 +86,7 @@ export class MediaController {
 
   @Get('/get-medias-by-dispositive-id')
   public async getMediasByDispositiveId(
-    @Query() query: QueryGetMediasByDispositiveIdDto,
+    @Query(ValidationPipe) query: QueryGetMediasByDispositiveIdDto,
     @GetAuthenticatedUser() user: UserEntity
   ): Promise<ResultGetMediasGeneralDto> {
     return this.mediaService.getMediasByDispositiveId(query, user?.id);
