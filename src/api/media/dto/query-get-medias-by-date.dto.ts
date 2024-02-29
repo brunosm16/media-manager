@@ -1,4 +1,4 @@
-import { IsDateString, IsNotEmpty, IsString, IsUUID } from 'class-validator';
+import { IsDateString, IsEnum, IsNotEmpty, IsUUID } from 'class-validator';
 
 export class QueryGetMediasByDateDto {
   @IsNotEmpty()
@@ -10,6 +10,6 @@ export class QueryGetMediasByDateDto {
   limitDate: string;
 
   @IsNotEmpty()
-  @IsString()
-  sort: 'ASC' | 'DESC' = 'ASC';
+  @IsEnum(['ASC', 'DESC'], { message: 'sort must be ASC or DESC' })
+  sort: string;
 }
