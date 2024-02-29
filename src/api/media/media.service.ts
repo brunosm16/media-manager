@@ -18,6 +18,8 @@ import { Repository } from 'typeorm';
 import type {
   QueryGetMediasByDateDto,
   QueryGetMediasByDispositiveIdDto,
+  ResultDataGetMediasGeneral,
+  ResultGetMediasGeneralDto,
 } from './dto';
 import type { CreateMediaDto } from './dto/create-media.dto';
 import type { QueryDisplayFileMediaDto } from './dto/query-display-file-media.dto';
@@ -204,6 +206,30 @@ export class MediaService {
     return media;
   }
 
+  private makeResultGetMediasGeneral(
+    length: number,
+    keyValue: Record<string, string>,
+    result: ResultDataGetMediasGeneral[] = []
+  ): ResultGetMediasGeneralDto {
+    const keys = Object.keys(keyValue);
+
+    if (keys.length > 1) {
+      throw new BadRequestException(
+        'Invalid key value',
+        'makeResultGetMediasGeneral'
+      );
+    }
+
+    const [key] = keys;
+    const value = keyValue[key];
+
+    return {
+      [`${key}`]: value,
+      length,
+      result,
+    };
+  }
+
   public async createBatch(
     createMediaDto: CreateMediaDto,
     userId: string,
@@ -293,16 +319,18 @@ export class MediaService {
   public async getMediasByDispositiveId(
     query: QueryGetMediasByDispositiveIdDto,
     userId: string
-  ): Promise<MediaEntity[] | string[]> {
+  ): Promise<ResultGetMediasGeneralDto> {
+    const { dispositiveId } = query;
+
     const medias = await this.mediaRepository.findBy({
-      dispositiveId: query.dispositiveId,
+      dispositiveId,
       userId,
     });
 
-    if (!medias?.length) {
-      return [];
-    }
-
-    return medias;
+    return this.makeResultGetMediasGeneral(
+      medias?.length,
+      { dispositive: dispositiveId },
+      medias
+    );
   }
 }

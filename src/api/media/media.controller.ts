@@ -17,8 +17,10 @@ import { Response as ExpressResponse } from 'express';
 import { GetAuthenticatedUser } from 'src/decorators/get-authenticated-user.decorator';
 import { JwtAuthenticationGuard } from 'src/modules/jwt-helper/jwt.authentication.guard';
 
-import type { ResultGetMediasByDateDto } from './dto';
-import type { MediaEntity } from './entities/media.entity';
+import type {
+  ResultGetMediasByDateDto,
+  ResultGetMediasGeneralDto,
+} from './dto';
 
 import { UserEntity } from '../user/entities/user.entity';
 import {
@@ -77,7 +79,7 @@ export class MediaController {
   public async getMediasByDispositiveId(
     @Query() query: QueryGetMediasByDispositiveIdDto,
     @GetAuthenticatedUser() user: UserEntity
-  ): Promise<MediaEntity[] | string[]> {
+  ): Promise<ResultGetMediasGeneralDto> {
     return this.mediaService.getMediasByDispositiveId(query, user?.id);
   }
 }
