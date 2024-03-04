@@ -1,5 +1,3 @@
-import type { RemoveObjectKeysResult } from './utils-types';
-
 const valueIsEmpty = (value: any): boolean =>
   value !== null && value !== undefined;
 
@@ -42,22 +40,4 @@ export const camelCaseObjectKeys = (
 
     return tempAcc;
   }, {});
-};
-
-export const removeObjectKeys = (
-  obj: Record<string, any>,
-  keys: string[]
-): RemoveObjectKeysResult => {
-  const resultObject = obj;
-
-  keys.forEach((key) => {
-    delete resultObject[key];
-  });
-
-  const isSuccessfulDeleted = Object.keys(resultObject).length !== keys.length;
-
-  return {
-    isSuccessfulDeleted,
-    resultObject,
-  };
 };
