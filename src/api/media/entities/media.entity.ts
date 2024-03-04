@@ -1,8 +1,10 @@
+import { ExifEntity } from 'src/api/exif/entities/exif.entity';
 import {
   Column,
   CreateDateColumn,
   DeleteDateColumn,
   Entity,
+  OneToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -22,6 +24,9 @@ export class MediaEntity {
 
   @Column('uuid')
   dispositiveId: string;
+
+  @OneToOne(() => ExifEntity, (exifEntity) => exifEntity.media)
+  exif: string;
 
   @PrimaryGeneratedColumn('uuid')
   id: string;

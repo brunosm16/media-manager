@@ -52,6 +52,9 @@ export class MediaService {
     );
 
     const result = await this.mediaRepository.save(mediaEntity);
+    const isImageToExtractExifData =
+      mediaEntity.mediaType === MediaTypeEnum.IMAGE &&
+      mediaEntity.mimeType !== 'image/gif';
 
     if (mediaEntity.mediaType === MediaTypeEnum.IMAGE) {
       await this.mediaManagerJobsService.registerRescaleImageJob(mediaEntity);
@@ -59,6 +62,10 @@ export class MediaService {
 
     if (mediaEntity.mediaType === MediaTypeEnum.VIDEO) {
       await this.mediaManagerJobsService.extractVideoThumbnail(mediaEntity);
+    }
+
+    if (isImageToExtractExifData) {
+      await this.mediaManagerJobsService.registerExtractExifData(mediaEntity);
     }
 
     return result;

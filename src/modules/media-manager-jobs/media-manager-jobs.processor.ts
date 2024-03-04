@@ -5,9 +5,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Job } from 'bull';
 import * as Ffmpeg from 'fluent-ffmpeg';
 import { existsSync, mkdirSync } from 'fs';
-import { readFile } from 'fs/promises';
+import { readFile, stat } from 'fs/promises';
 import * as path from 'path';
 import * as sharp from 'sharp';
+import { ExifEntity } from 'src/api/exif/entities/exif.entity';
+import { ExifService } from 'src/api/exif/exif.service';
 import { MediaEntity } from 'src/api/media/entities/media.entity';
 import { createMediasDirectory } from 'src/api/media/multer/media.multer.utils';
 import { logErrorDetailed } from 'src/utils/logs';
@@ -16,6 +18,7 @@ import { Repository } from 'typeorm';
 import type { MediaPaths } from './media-manager-jobs.types';
 
 import {
+  EXTRACT_EXIF_DATA_JOB,
   EXTRACT_VIDEO_THUMBNAIL_JOB,
   MEDIA_MANAGER_PARENT_QUEUE,
   RESCALE_DIRECTORY,
@@ -28,8 +31,11 @@ export class MediaManagerJobsProcessor {
   constructor(
     @InjectRepository(MediaEntity)
     private readonly mediaRepository: Repository<MediaEntity>,
+    @InjectRepository(ExifEntity)
+    private readonly exifRepository: Repository<ExifEntity>,
     @Inject(ConfigService)
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
+    private readonly exifService: ExifService
   ) {}
 
   private extractFilenameFromPath(filePath: string): string {
@@ -105,6 +111,38 @@ export class MediaManagerJobsProcessor {
       .toFile(destinationPath);
 
     return rescaledImage;
+  }
+
+  @Process(EXTRACT_EXIF_DATA_JOB)
+  public async extractExifDataJob(job: Job): Promise<void> {
+    try {
+      const media = this.extractMediaFromJobData(job);
+
+      const { mediaFilePath, mimeType } = media;
+
+      const parsedOutput = await this.exifService.parse(
+        mediaFilePath,
+        mimeType
+      );
+
+      const exifEntity =
+        this.exifService.createExifEntityFromOutput(parsedOutput);
+
+      exifEntity.mediaId = media.id;
+      exifEntity.mediaName = this.extractFilenameFromPath(media.mediaFilePath);
+      exifEntity.mediaSize = (await stat(mediaFilePath)).size;
+
+      const savedExifEntity = await this.exifRepository.save(exifEntity);
+
+      if (!savedExifEntity) {
+        throw new BadRequestException('Exif data was not persisted correctly');
+      }
+
+      Logger.log('Exif data persisted successfully', { savedExifEntity });
+    } catch (err) {
+      logErrorDetailed(err, 'Error while extracting Exif data');
+      throw err;
+    }
   }
 
   @Process(EXTRACT_VIDEO_THUMBNAIL_JOB)

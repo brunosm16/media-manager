@@ -1,76 +1,56 @@
-import type { RemoveObjectKeysResult } from 'src/utils/utils-types';
-
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import * as exifr from 'exifr';
 import { logErrorDetailed } from 'src/utils/logs';
-import { camelCaseObjectKeys, removeObjectKeys } from 'src/utils/objects-utils';
+import { camelCaseObjectKeys } from 'src/utils/objects-utils';
 
-import type {
-  ExifEntityOutput,
-  ExifEntityParseError,
-  ExifrOutput,
-} from './entities/exif.types';
+import type { ExifEntityOutput, ExifrOutput } from './entities/exif.types';
+
+import { ExifEntity } from './entities/exif.entity';
+import { exifEntityOutputFields } from './exif.constants';
 
 @Injectable()
 export class ExifService {
-  private makeExifEntityParseError(
-    reason: string,
-    mimeType: string
-  ): ExifEntityParseError {
-    return {
-      mimeType,
-      reason,
-    };
+  public createExifEntityFromOutput(
+    entityOutput: ExifEntityOutput
+  ): ExifEntity {
+    const exifEntity: ExifEntity = new ExifEntity();
+    const sanitizeEntityOutput = this.filterEntityOutput(entityOutput);
+
+    Object.assign(exifEntity, sanitizeEntityOutput);
+
+    return exifEntity;
   }
 
-  private async parseExifrOutput(
-    exifrOutput: ExifrOutput
-  ): Promise<ExifEntityOutput> {
-    const { isSuccessfulDeleted, resultObject: sanitizedExifrOutput } =
-      this.sanitizeExifrOutput(exifrOutput);
+  public filterEntityOutput(entityOutput: ExifEntityOutput) {
+    const entries = Object.entries(entityOutput);
+    const allowedKeys = exifEntityOutputFields;
 
-    if (!isSuccessfulDeleted) {
-      throw new Error('Error sanitizing Exifr');
-    }
+    const filteredEntries = entries
+      .filter(([key, value]) => allowedKeys.includes(key))
+      .map(([key, value]) => [key, value]);
 
-    const exifEntityOutput: ExifEntityOutput =
-      camelCaseObjectKeys(sanitizedExifrOutput);
-
-    return exifEntityOutput;
-  }
-
-  private sanitizeExifrOutput(
-    exifrOutput: ExifrOutput
-  ): RemoveObjectKeysResult {
-    const sanitizedExifrOutput = exifrOutput;
-
-    const sanitizeFields = [
-      'ComponentsConfiguration',
-      'GPSAltitudeRef',
-      'GPSProcessingMethod',
-    ];
-
-    return removeObjectKeys(sanitizedExifrOutput, sanitizeFields);
+    return Object.fromEntries(filteredEntries);
   }
 
   public async parse(
     path: string,
     mimeType: string
-  ): Promise<ExifEntityOutput | ExifEntityParseError> {
+  ): Promise<ExifEntityOutput> {
     try {
       if (mimeType === 'image/gif') {
-        Logger.log('GIF not supported as Exif Data');
-        return this.makeExifEntityParseError('GIF not supported', mimeType);
+        throw new BadRequestException('GIF not supported as Exif Data');
       }
 
-      const result: ExifrOutput = await exifr.parse(path);
+      const parsedOutput: ExifrOutput = await exifr.parse(path);
 
-      if (!result) {
-        Logger.log('No Exif data found image');
-        return this.makeExifEntityParseError('No Exif data found', mimeType);
+      if (!parsedOutput) {
+        throw new BadRequestException('No Exif data found in image');
       }
 
-      return await this.parseExifrOutput(result);
+      const exifEntityOutput: ExifEntityOutput =
+        camelCaseObjectKeys(parsedOutput);
+
+      return exifEntityOutput;
     } catch (err) {
       logErrorDetailed(err, 'Error parsing Exif data');
       throw err;

@@ -123,8 +123,3 @@ export type ExifEntityOutput = {
   yCbCrPositioning?: number;
   yResolution?: number;
 };
-
-export type ExifEntityParseError = {
-  mimeType: string;
-  reason: string;
-};
