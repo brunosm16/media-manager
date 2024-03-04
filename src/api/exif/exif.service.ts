@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import * as exifr from 'exifr';
 import { logErrorDetailed } from 'src/utils/logs';
-import { camelCaseObjectKeys } from 'src/utils/objects-utils';
+import { camelCaseObjectKeys, filterObjectKeys } from 'src/utils/objects-utils';
 
 import type { ExifEntityOutput, ExifrOutput } from './entities/exif.types';
 
@@ -14,22 +14,14 @@ export class ExifService {
     entityOutput: ExifEntityOutput
   ): ExifEntity {
     const exifEntity: ExifEntity = new ExifEntity();
-    const sanitizeEntityOutput = this.filterEntityOutput(entityOutput);
+    const sanitizeEntityOutput = filterObjectKeys(
+      entityOutput,
+      exifEntityOutputFields
+    );
 
     Object.assign(exifEntity, sanitizeEntityOutput);
 
     return exifEntity;
-  }
-
-  public filterEntityOutput(entityOutput: ExifEntityOutput) {
-    const entries = Object.entries(entityOutput);
-    const allowedKeys = exifEntityOutputFields;
-
-    const filteredEntries = entries
-      .filter(([key, value]) => allowedKeys.includes(key))
-      .map(([key, value]) => [key, value]);
-
-    return Object.fromEntries(filteredEntries);
   }
 
   public async parse(

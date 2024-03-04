@@ -41,3 +41,16 @@ export const camelCaseObjectKeys = (
     return tempAcc;
   }, {});
 };
+
+export const filterObjectKeys = (
+  obj: Record<string, any>,
+  keys: string[]
+): Record<string, any> => {
+  const entries = Object.entries(obj);
+
+  const filteredEntries = entries
+    .filter(([key, value]) => keys.includes(key))
+    .map(([key, value]) => [key, value]);
+
+  return Object.fromEntries(filteredEntries);
+};
