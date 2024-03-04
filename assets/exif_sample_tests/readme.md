@@ -1,0 +1,1 @@
+All exif samples images are extracted from this repository: https://github.com/ianare/exif-samples
