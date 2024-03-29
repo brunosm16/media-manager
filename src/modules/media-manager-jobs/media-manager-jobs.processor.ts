@@ -5,7 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Job } from 'bull';
 import * as Ffmpeg from 'fluent-ffmpeg';
 import { existsSync, mkdirSync } from 'fs';
-import { readFile, stat } from 'fs/promises';
+import { readFile, stat, unlink } from 'fs/promises';
 import * as path from 'path';
 import * as sharp from 'sharp';
 import { ExifEntity } from 'src/api/exif/entities/exif.entity';
@@ -18,6 +18,7 @@ import { Repository } from 'typeorm';
 import type { MediaPaths } from './media-manager-jobs.types';
 
 import {
+  DELETE_MEDIAS_ON_STORAGE_JOB,
   EXTRACT_EXIF_DATA_JOB,
   EXTRACT_VIDEO_THUMBNAIL_JOB,
   MEDIA_MANAGER_PARENT_QUEUE,
@@ -82,6 +83,27 @@ export class MediaManagerJobsProcessor {
     } as MediaPaths;
   }
 
+  private getAllMediaPaths(medias: MediaEntity[]): string[] {
+    return medias.reduce((acc: string[], curr: MediaEntity) => {
+      const { mediaFilePath, mediaImageRescalePath, mediaVideoThumbnailPath } =
+        curr;
+
+      if (mediaFilePath) {
+        acc.push(mediaFilePath);
+      }
+
+      if (mediaImageRescalePath) {
+        acc.push(mediaImageRescalePath);
+      }
+
+      if (mediaVideoThumbnailPath) {
+        acc.push(mediaVideoThumbnailPath);
+      }
+
+      return acc;
+    }, [] as string[]);
+  }
+
   private async persistVideoThumbnail(
     destinationPath: string,
     id: string
@@ -111,6 +133,32 @@ export class MediaManagerJobsProcessor {
       .toFile(destinationPath);
 
     return rescaledImage;
+  }
+
+  private async unlinkMediaPaths(paths: string[]): Promise<void> {
+    paths.forEach(async (pathToDelete) => {
+      try {
+        await unlink(pathToDelete);
+        Logger.log(`Media deleted successfully: ${pathToDelete}`);
+      } catch (err) {
+        logErrorDetailed(
+          err,
+          `Error while deleting media on storage: ${pathToDelete}`
+        );
+      }
+    });
+  }
+
+  @Process(DELETE_MEDIAS_ON_STORAGE_JOB)
+  public async deleteMediasOnStorage(job: Job): Promise<void> {
+    try {
+      const medias = job?.data?.jobData as MediaEntity[];
+      const paths = this.getAllMediaPaths(medias);
+      await this.unlinkMediaPaths(paths);
+    } catch (err) {
+      logErrorDetailed(err, 'Error while deleting medias on storage');
+      throw err;
+    }
   }
 
   @Process(EXTRACT_EXIF_DATA_JOB)

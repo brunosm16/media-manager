@@ -8,6 +8,7 @@ import { randomUUID } from 'crypto';
 import type { JobRegistrationResult } from './media-manager-jobs.types';
 
 import {
+  DELETE_MEDIAS_ON_STORAGE_JOB,
   EXTRACT_EXIF_DATA_JOB,
   EXTRACT_VIDEO_THUMBNAIL_JOB,
   MEDIA_MANAGER_PARENT_QUEUE,
@@ -39,6 +40,10 @@ export class MediaManagerJobsService {
     media: MediaEntity
   ): Promise<JobRegistrationResult> {
     return this.registerJob(EXTRACT_VIDEO_THUMBNAIL_JOB, media);
+  }
+
+  public async registerDeleteMediasOnStorage(medias: MediaEntity[]) {
+    return this.registerJob(DELETE_MEDIAS_ON_STORAGE_JOB, medias);
   }
 
   public async registerExtractExifData(

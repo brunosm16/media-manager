@@ -22,9 +22,14 @@ import type {
   ResultDataGetMediasGeneral,
   ResultGetMediasGeneralDto,
 } from './dto';
+import type { BulkDeleteMediasByIdsDto } from './dto/bulk-delete-medias.dto';
 import type { CreateMediaDto } from './dto/create-media.dto';
 import type { QueryDisplayFileMediaDto } from './dto/query-display-file-media.dto';
 import type { QueryGetMediaByIdDto } from './dto/query-get-media-by-id.dto';
+import type {
+  ResponseBulkDeleteMediasDto,
+  ResultBulkDeleteMediasDto,
+} from './dto/result-bulk-delete-medias.dto';
 import type { ResultGetMediaIdByDto } from './dto/result-get-media-by-id.dto';
 import type {
   ResultDataGetMediasByDate,
@@ -112,6 +117,21 @@ export class MediaService {
 
     const stream = createReadStream(filePath, opts);
     return new StreamableFile(stream);
+  }
+
+  private async deleteMedias(
+    medias: MediaEntity[]
+  ): Promise<ResultBulkDeleteMediasDto[]> {
+    const promises = medias.map(async (media) => {
+      const deleteResult = await this.mediaRepository.delete(media.id);
+
+      return {
+        media,
+        wasDeleted: !!deleteResult?.affected,
+      };
+    });
+
+    return Promise.all(promises);
   }
 
   private extractMediaTypeFromMimeType(mimeType: string): MediaTypeEnum {
@@ -216,6 +236,15 @@ export class MediaService {
     return media;
   }
 
+  private makeResponseBulkDeleteMedias(
+    deletedMedias: ResultBulkDeleteMediasDto[]
+  ): ResponseBulkDeleteMediasDto[] {
+    return deletedMedias.map((deletedMedia) => ({
+      mediaId: deletedMedia?.media.id,
+      wasDeleted: deletedMedia?.wasDeleted,
+    }));
+  }
+
   private makeResultGetMediasGeneral(
     length: number,
     keyValue: Record<string, string>,
@@ -238,6 +267,35 @@ export class MediaService {
       length,
       result,
     };
+  }
+
+  private async registerMediasToBeDeleteOnStorage(
+    medias: ResultBulkDeleteMediasDto[]
+  ): Promise<void> {
+    const deletedMedias = medias
+      .filter((media) => !!media?.wasDeleted)
+      .map(({ media }) => media);
+
+    if (deletedMedias.length > 0) {
+      await this.mediaManagerJobsService.registerDeleteMediasOnStorage(
+        deletedMedias
+      );
+    }
+  }
+
+  public async bulkDeleteMediasByIds(
+    mediaIds: BulkDeleteMediasByIdsDto,
+    userId: string
+  ): Promise<ResponseBulkDeleteMediasDto[]> {
+    const { ids } = mediaIds;
+
+    const foundMedias = await this.findMediasByIds(ids, userId);
+    const deletedMedias = await this.deleteMedias(foundMedias);
+    const response = this.makeResponseBulkDeleteMedias(deletedMedias);
+    await this.registerMediasToBeDeleteOnStorage(deletedMedias);
+    Logger.log('Medias deleted', { response });
+
+    return response;
   }
 
   public async createBatch(
@@ -296,6 +354,24 @@ export class MediaService {
       logErrorDetailed(err, 'Error while trying to display file');
       throw err;
     }
+  }
+
+  public async findMediasByIds(
+    ids: string[],
+    userId: string
+  ): Promise<MediaEntity[]> {
+    const promises = ids.map(async (id) =>
+      this.mediaRepository.findOne({
+        where: {
+          id,
+          userId,
+        },
+      })
+    );
+
+    const result = await Promise.all(promises);
+
+    return result.filter((media) => !!media);
   }
 
   public async getLatestMedias(

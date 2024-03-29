@@ -4,3 +4,4 @@ export const RESCALE_DIRECTORY = 'rescaled';
 export const EXTRACT_VIDEO_THUMBNAIL_JOB = 'extract-video-thumbnail-queue';
 export const VIDEO_THUMBNAIL_DIRECTORY = 'thumbnails';
 export const EXTRACT_EXIF_DATA_JOB = 'extract-exif-data-queue';
+export const DELETE_MEDIAS_ON_STORAGE_JOB = 'delete-medias-on-storage';

@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
   Post,
@@ -29,6 +30,7 @@ import {
   QueryGetMediasByDateDto,
   QueryGetMediasByDispositiveIdDto,
 } from './dto';
+import { BulkDeleteMediasByIdsDto } from './dto/bulk-delete-medias.dto';
 import { CreateMediaDto } from './dto/create-media.dto';
 import { QueryDisplayFileMediaDto } from './dto/query-display-file-media.dto';
 import { QueryGetMediaByIdDto } from './dto/query-get-media-by-id.dto';
@@ -43,6 +45,14 @@ import { mediaMulterOptions } from './multer/media.multer.options';
 @Controller('media')
 export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
+
+  @Delete('/bulk-delete-medias')
+  public async bulkDeleteMediasByIds(
+    @GetAuthenticatedUser() user: UserEntity,
+    @Body() mediaIds: BulkDeleteMediasByIdsDto
+  ) {
+    return this.mediaService.bulkDeleteMediasByIds(mediaIds, user?.id);
+  }
 
   @Post('create-batch')
   @UseInterceptors(
