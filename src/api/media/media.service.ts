@@ -24,6 +24,8 @@ import type {
 } from './dto';
 import type { CreateMediaDto } from './dto/create-media.dto';
 import type { QueryDisplayFileMediaDto } from './dto/query-display-file-media.dto';
+import type { QueryGetMediaByIdDto } from './dto/query-get-media-by-id.dto';
+import type { ResultGetMediaIdByDto } from './dto/result-get-media-by-id.dto';
 import type {
   ResultDataGetMediasByDate,
   ResultGetMediasByDateDto,
@@ -320,6 +322,33 @@ export class MediaService {
       );
     } catch (err) {
       logErrorDetailed(err, 'Error while trying to get latest medias');
+      throw err;
+    }
+  }
+
+  public async getMediaById(
+    query: QueryGetMediaByIdDto,
+    userId: string
+  ): Promise<ResultGetMediaIdByDto> {
+    try {
+      const media = await this.mediaRepository.findOne({
+        relations: ['exif'],
+        where: {
+          id: query?.mediaId,
+          userId,
+        },
+      });
+
+      if (!media) {
+        throw new NotFoundException('Media not found');
+      }
+
+      return media;
+    } catch (err) {
+      logErrorDetailed(
+        err,
+        'Error while trying to get medias by dispositive id'
+      );
       throw err;
     }
   }

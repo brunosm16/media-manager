@@ -1,6 +1,8 @@
+import type { ExifEntity } from 'src/api/exif/entities/exif.entity';
+
 import type { MediaTypeEnum } from '../enums/media.enums';
 
-export type ResultDataGetMediasGeneral = {
+export type ResultGetMediaIdByDto = {
   createdAt: string;
 
   deletedAt: string;
@@ -26,12 +28,7 @@ export type ResultDataGetMediasGeneral = {
   updatedAt: string;
 
   userId: string;
+
+  // eslint-disable-next-line perfectionist/sort-object-types
+  exif: ExifEntity;
 };
-
-export class ResultGetMediasGeneralDto {
-  [queryField: string]: any;
-
-  length: number;
-
-  result: ResultDataGetMediasGeneral[];
-}

@@ -26,7 +26,7 @@ export class MediaEntity {
   dispositiveId: string;
 
   @OneToOne(() => ExifEntity, (exifEntity) => exifEntity.media)
-  exif: string;
+  exif: ExifEntity;
 
   @PrimaryGeneratedColumn('uuid')
   id: string;

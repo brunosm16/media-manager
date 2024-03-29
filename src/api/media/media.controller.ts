@@ -21,6 +21,7 @@ import type {
   ResultGetMediasByDateDto,
   ResultGetMediasGeneralDto,
 } from './dto';
+import type { ResultGetMediaIdByDto } from './dto/result-get-media-by-id.dto';
 
 import { UserEntity } from '../user/entities/user.entity';
 import {
@@ -30,6 +31,7 @@ import {
 } from './dto';
 import { CreateMediaDto } from './dto/create-media.dto';
 import { QueryDisplayFileMediaDto } from './dto/query-display-file-media.dto';
+import { QueryGetMediaByIdDto } from './dto/query-get-media-by-id.dto';
 import { MediaService } from './media.service';
 import {
   MEDIA_CREATE_BATCH_SIZE,
@@ -74,6 +76,14 @@ export class MediaController {
     @GetAuthenticatedUser() user: UserEntity
   ): Promise<ResultGetMediasGeneralDto> {
     return this.mediaService.getLatestMedias(query, user?.id);
+  }
+
+  @Get('/get-media-by-id')
+  public async getMediaById(
+    @Query(ValidationPipe) query: QueryGetMediaByIdDto,
+    @GetAuthenticatedUser() user: UserEntity
+  ): Promise<ResultGetMediaIdByDto> {
+    return this.mediaService.getMediaById(query, user?.id);
   }
 
   @Get('/get-medias-by-date')
