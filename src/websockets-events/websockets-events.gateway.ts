@@ -5,13 +5,16 @@ import type {
 import type { Socket } from 'socket.io';
 
 import { Logger } from '@nestjs/common';
-import { WebSocketGateway } from '@nestjs/websockets';
+import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
+import { Server } from 'socket.io';
 import { JwtHelperService } from 'src/modules/jwt-helper/jwt-helper.service';
 
 @WebSocketGateway()
 export class WebsocketsEventsGateway
   implements OnGatewayConnection, OnGatewayDisconnect
 {
+  @WebSocketServer() server: Server;
+
   constructor(private readonly jwtHelperService: JwtHelperService) {}
 
   private emitAuthorizationError(client: Socket, errorMessage: string): void {

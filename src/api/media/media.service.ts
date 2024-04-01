@@ -270,7 +270,8 @@ export class MediaService {
   }
 
   private async registerMediasToBeDeleteOnStorage(
-    medias: ResultBulkDeleteMediasDto[]
+    medias: ResultBulkDeleteMediasDto[],
+    userId: string
   ): Promise<void> {
     const deletedMedias = medias
       .filter((media) => !!media?.wasDeleted)
@@ -278,7 +279,8 @@ export class MediaService {
 
     if (deletedMedias.length > 0) {
       await this.mediaManagerJobsService.registerDeleteMediasOnStorage(
-        deletedMedias
+        deletedMedias,
+        userId
       );
     }
   }
@@ -292,7 +294,7 @@ export class MediaService {
     const foundMedias = await this.findMediasByIds(ids, userId);
     const deletedMedias = await this.deleteMedias(foundMedias);
     const response = this.makeResponseBulkDeleteMedias(deletedMedias);
-    await this.registerMediasToBeDeleteOnStorage(deletedMedias);
+    await this.registerMediasToBeDeleteOnStorage(deletedMedias, userId);
     Logger.log('Medias deleted', { response });
 
     return response;

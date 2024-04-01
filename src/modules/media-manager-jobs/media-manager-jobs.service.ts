@@ -42,8 +42,11 @@ export class MediaManagerJobsService {
     return this.registerJob(EXTRACT_VIDEO_THUMBNAIL_JOB, media);
   }
 
-  public async registerDeleteMediasOnStorage(medias: MediaEntity[]) {
-    return this.registerJob(DELETE_MEDIAS_ON_STORAGE_JOB, medias);
+  public async registerDeleteMediasOnStorage(
+    medias: MediaEntity[],
+    userId: string
+  ) {
+    return this.registerJob(DELETE_MEDIAS_ON_STORAGE_JOB, { medias, userId });
   }
 
   public async registerExtractExifData(

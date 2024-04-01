@@ -1,9 +1,4 @@
-import {
-  Inject,
-  Injectable,
-  Logger,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UserService } from 'src/api/user/user.service';
 
@@ -13,7 +8,7 @@ import type { JwtPayload } from './jwt-helper.types';
 export class JwtHelperService {
   constructor(
     private readonly jwtService: JwtService,
-    @Inject(UserService) private readonly userService: UserService
+    private readonly userService: UserService
   ) {}
 
   async generateAccessToken(payload: JwtPayload) {

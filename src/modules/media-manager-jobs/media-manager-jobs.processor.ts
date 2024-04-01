@@ -13,6 +13,7 @@ import { ExifService } from 'src/api/exif/exif.service';
 import { MediaEntity } from 'src/api/media/entities/media.entity';
 import { createMediasDirectory } from 'src/api/media/multer/media.multer.utils';
 import { logErrorDetailed } from 'src/utils/logs';
+import { WebsocketsEventsGateway } from 'src/websockets-events/websockets-events.gateway';
 import { Repository } from 'typeorm';
 
 import type { MediaPaths } from './media-manager-jobs.types';
@@ -36,8 +37,21 @@ export class MediaManagerJobsProcessor {
     private readonly exifRepository: Repository<ExifEntity>,
     @Inject(ConfigService)
     private readonly configService: ConfigService,
+    private readonly webSocketsEventsGateway: WebsocketsEventsGateway,
     private readonly exifService: ExifService
   ) {}
+
+  private emitFileEvent(
+    userId: string,
+    file: ExifEntity | MediaEntity | string | string[],
+    eventName: string = 'onPersistedFile'
+  ): void {
+    const fileData = typeof file === 'string' ? { filePath: file } : file;
+
+    this.webSocketsEventsGateway.server
+      .to(userId)
+      .emit(eventName, JSON.stringify(fileData));
+  }
 
   private extractFilenameFromPath(filePath: string): string {
     const { ext, name } = path.parse(filePath);
@@ -106,7 +120,8 @@ export class MediaManagerJobsProcessor {
 
   private async persistVideoThumbnail(
     destinationPath: string,
-    id: string
+    id: string,
+    userId: string
   ): Promise<void> {
     const result = await this.mediaRepository.update(
       { id },
@@ -118,6 +133,7 @@ export class MediaManagerJobsProcessor {
         'Video thumbnail was not persisted correctly'
       );
     }
+    this.emitFileEvent(userId, destinationPath);
 
     Logger.log('Video thumbnail persisted successfully');
   }
@@ -135,26 +151,37 @@ export class MediaManagerJobsProcessor {
     return rescaledImage;
   }
 
-  private async unlinkMediaPaths(paths: string[]): Promise<void> {
-    paths.forEach(async (pathToDelete) => {
+  private async unlinkMediaPaths(paths: string[]): Promise<string[]> {
+    const promises = paths.map(async (pathToDelete) => {
       try {
         await unlink(pathToDelete);
         Logger.log(`Media deleted successfully: ${pathToDelete}`);
+        return pathToDelete;
       } catch (err) {
         logErrorDetailed(
           err,
           `Error while deleting media on storage: ${pathToDelete}`
         );
+        return null;
       }
     });
+
+    return Promise.all(promises);
   }
 
   @Process(DELETE_MEDIAS_ON_STORAGE_JOB)
   public async deleteMediasOnStorage(job: Job): Promise<void> {
     try {
-      const medias = job?.data?.jobData as MediaEntity[];
+      const { jobData } = job.data;
+      const medias = jobData?.medias as MediaEntity[];
+      const userId = jobData?.userId as string;
       const paths = this.getAllMediaPaths(medias);
-      await this.unlinkMediaPaths(paths);
+      const deletedPaths = await this.unlinkMediaPaths(paths);
+      const filteredDeletedPaths = deletedPaths.filter(
+        (deletedPath) => !!deletedPath
+      );
+
+      this.emitFileEvent(userId, filteredDeletedPaths, 'onDeletedFiles');
     } catch (err) {
       logErrorDetailed(err, 'Error while deleting medias on storage');
       throw err;
@@ -187,6 +214,8 @@ export class MediaManagerJobsProcessor {
       }
 
       Logger.log('Exif data persisted successfully', { savedExifEntity });
+
+      this.emitFileEvent(media?.userId, savedExifEntity);
     } catch (err) {
       logErrorDetailed(err, 'Error while extracting Exif data');
       throw err;
@@ -215,7 +244,7 @@ export class MediaManagerJobsProcessor {
           throw err;
         })
         .on('end', () =>
-          this.persistVideoThumbnail(destinationPath, media?.id)
+          this.persistVideoThumbnail(destinationPath, media?.id, media?.userId)
         );
     } catch (err) {
       logErrorDetailed(err, 'Error while extracting video thumbnail');
@@ -236,12 +265,20 @@ export class MediaManagerJobsProcessor {
         destinationPath
       );
 
-      await this.mediaRepository.update(
+      const result = await this.mediaRepository.update(
         { id: media.id },
         { mediaImageRescalePath: destinationPath }
       );
 
+      if (!result?.affected) {
+        throw new BadRequestException(
+          'Image rescale was not persisted correctly'
+        );
+      }
+
       Logger.log(`Image rescaled successfully`, { rescaledImage });
+
+      this.emitFileEvent(media?.userId, destinationPath);
     } catch (err) {
       logErrorDetailed(err, 'Error while rescaling image');
       throw err;
