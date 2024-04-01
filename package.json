@@ -31,7 +31,10 @@
     "@nestjs/mapped-types": "*",
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^10.0.0",
+    "@nestjs/platform-socket.io": "^10.3.7",
     "@nestjs/typeorm": "^10.0.2",
+    "@nestjs/websockets": "^10.3.7",
+    "@socket.io/redis-adapter": "^8.3.0",
     "bcrypt": "^5.1.1",
     "bull": "^4.12.2",
     "class-transformer": "^0.5.1",
@@ -43,9 +46,11 @@
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.11.3",
+    "redis": "^4.6.13",
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.1",
     "sharp": "^0.33.2",
+    "socket.io": "^4.7.5",
     "typeorm": "^0.3.20"
   },
   "devDependencies": {

@@ -15,6 +15,7 @@ import { UserModule } from './api/user/user.module';
 import { MediaManagerLoggerMiddleware } from './middlewares/media-manager-logger-middleware';
 import { JwtHelperModule } from './modules/jwt-helper/jwt-helper.module';
 import { mediaManagerBullRootFactory } from './modules/media-manager-jobs/media-manager-jobs.configuration';
+import { WebsocketsEventsModule } from './websockets-events/websockets-events.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { mediaManagerBullRootFactory } from './modules/media-manager-jobs/media-
     AuthenticationModule,
     MediaModule,
     JwtHelperModule,
+    WebsocketsEventsModule,
   ],
 })
 export class AppModule implements NestModule {
